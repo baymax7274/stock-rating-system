@@ -6,8 +6,9 @@ for k in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"):
 os.environ["no_proxy"] = "*"
 os.environ["NO_PROXY"] = "*"
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
 from app.scoring.engine import ScoringEngine
 from app.models.schemas import ApiResponse
 
@@ -16,6 +17,8 @@ app = FastAPI(
     description="基于Akshare数据的股票技术面自动评分API",
     version="1.0.0",
 )
+
+templates = Jinja2Templates(directory="app/templates")
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +41,23 @@ async def get_rating(stock_code: str):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"评分服务异常: {str(e)}")
+
+
+@app.get("/")
+async def index(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/api/v1/search")
+async def search_stock(keyword: str = Query(..., min_length=1)):
+    from app.data.akshare_client import _get_stock_list
+    stocks = _get_stock_list()
+    keyword_lower = keyword.lower()
+    results = [
+        s for s in stocks
+        if keyword_lower in s["code"].lower() or keyword_lower in s["name"].lower()
+    ][:10]
+    return {"code": 0, "data": results}
 
 
 @app.get("/api/v1/health")

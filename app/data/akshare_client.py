@@ -240,3 +240,25 @@ class AkshareClient:
     def format_code(self, code: str) -> str:
         symbol, _ = self._code_to_ak(code)
         return symbol
+
+
+_stock_list_cache = None
+
+
+def _get_stock_list() -> list[dict]:
+    """获取A股股票列表（带缓存），用于搜索建议"""
+    global _stock_list_cache
+    if _stock_list_cache is not None:
+        return _stock_list_cache
+    try:
+        df = ak.stock_info_a_code_name()
+        if df is not None and not df.empty:
+            _stock_list_cache = [
+                {"code": str(row["code"]), "name": str(row["name"])}
+                for _, row in df.iterrows()
+            ]
+            return _stock_list_cache
+    except Exception as e:
+        logger.warning("获取股票列表失败: %s", e)
+    _stock_list_cache = []
+    return _stock_list_cache
