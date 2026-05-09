@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from app.scoring.engine import ScoringEngine
 from app.models.schemas import ApiResponse
+from app.data.akshare_client import AkshareClient
 
 app = FastAPI(
     title="股票技术面评分系统",
@@ -50,8 +51,7 @@ async def index(request: Request):
 
 @app.get("/api/v1/search")
 async def search_stock(keyword: str = Query(..., min_length=1)):
-    from app.data.akshare_client import _get_stock_list
-    stocks = _get_stock_list()
+    stocks = AkshareClient._get_stock_list()
     keyword_lower = keyword.lower()
     results = [
         s for s in stocks

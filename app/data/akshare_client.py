@@ -225,40 +225,36 @@ class AkshareClient:
         except Exception:
             return 20.0
 
+    _stock_list_cache = None
+
+    @classmethod
+    def _get_stock_list(cls) -> list[dict]:
+        """获取A股股票列表（带缓存），同时填充_name_cache"""
+        if cls._stock_list_cache is not None:
+            return cls._stock_list_cache
+        try:
+            df = ak.stock_info_a_code_name()
+            if df is not None and not df.empty:
+                cache = []
+                for _, row in df.iterrows():
+                    code = str(row["code"])
+                    name = str(row["name"])
+                    cache.append({"code": code, "name": name})
+                    cls._name_cache[code] = name
+                cls._stock_list_cache = cache
+                return cache
+        except Exception as e:
+            logger.warning("获取股票列表失败: %s", e)
+        # 不在异常时缓存，允许后续重试
+        return []
+
     def get_stock_name(self, code: str) -> str:
         symbol, _ = self._code_to_ak(code)
         if symbol in self._name_cache:
             return self._name_cache[symbol]
-        try:
-            df = ak.stock_info_a_code_name()
-            for _, row in df.iterrows():
-                self._name_cache[str(row["code"])] = str(row["name"])
-        except Exception:
-            pass
+        self._get_stock_list()
         return self._name_cache.get(symbol, code)
 
     def format_code(self, code: str) -> str:
         symbol, _ = self._code_to_ak(code)
         return symbol
-
-
-_stock_list_cache = None
-
-
-def _get_stock_list() -> list[dict]:
-    """获取A股股票列表（带缓存），用于搜索建议"""
-    global _stock_list_cache
-    if _stock_list_cache is not None:
-        return _stock_list_cache
-    try:
-        df = ak.stock_info_a_code_name()
-        if df is not None and not df.empty:
-            _stock_list_cache = [
-                {"code": str(row["code"]), "name": str(row["name"])}
-                for _, row in df.iterrows()
-            ]
-            return _stock_list_cache
-    except Exception as e:
-        logger.warning("获取股票列表失败: %s", e)
-    _stock_list_cache = []
-    return _stock_list_cache
