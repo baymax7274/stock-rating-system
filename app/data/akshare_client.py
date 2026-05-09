@@ -123,28 +123,28 @@ class AkshareClient:
         return daily
 
     def get_moneyflow(self, code: str, days: int = 10) -> pd.DataFrame:
-        """获取/推算资金流向"""
-        symbol, market = self._code_to_ak(code)
+        """获取/推算资金流向（新浪财经主数据源）"""
+        sina_code = self._code_to_sina(code)
 
-        # 尝试东方财富接口
+        # 主数据源：新浪财经资金流向
         try:
-            df = ak.stock_individual_fund_flow(stock=symbol, market=market)
-            if df is not None and not df.empty:
-                rename_map = {
-                    "日期": "trade_date", "主力净流入-净额": "net_mf_amount",
-                    "大单流入": "buy_lg_vol", "大单流出": "sell_lg_vol",
-                }
-                existing = {k: v for k, v in rename_map.items() if k in df.columns}
-                df = df.rename(columns=existing)
-                if "buy_lg_vol" in df.columns and "sell_lg_vol" in df.columns:
-                    df["net_mf_vol"] = pd.to_numeric(df["buy_lg_vol"], errors="coerce") - pd.to_numeric(df["sell_lg_vol"], errors="coerce")
-                elif "net_mf_amount" in df.columns:
-                    df["net_mf_vol"] = pd.to_numeric(df["net_mf_amount"], errors="coerce")
-                else:
-                    df["net_mf_vol"] = 0
-                df = df.sort_values("trade_date").tail(days).reset_index(drop=True)
-                df["trade_date"] = df["trade_date"].astype(str)
-                return df
+            url = "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php/MoneyFlow.ssl_qsfx_zjlrqs"
+            params = {"daima": sina_code, "num": str(min(days, 30))}
+            resp = _original_get(url, params=params, timeout=15,
+                                 proxies={"http": None, "https": None})
+            if resp.status_code == 200 and resp.text.strip():
+                data = resp.json()
+                if data and isinstance(data, list):
+                    rows = []
+                    for item in data:
+                        rows.append({
+                            "trade_date": item.get("opendate", ""),
+                            "net_mf_vol": float(item.get("netamount", 0)),
+                        })
+                    df = pd.DataFrame(rows)
+                    if not df.empty:
+                        df = df.sort_values("trade_date").tail(days).reset_index(drop=True)
+                        return df
         except Exception:
             pass
 
@@ -154,7 +154,6 @@ class AkshareClient:
             raise ValueError(f"未获取到 {code} 的资金流向数据")
         df = pd.DataFrame()
         df["trade_date"] = daily["trade_date"]
-        # 价格涨+放量 → 资金流入；价格跌+放量 → 资金流出
         df["pct_chg"] = daily["pct_chg"]
         df["vol"] = daily["vol"]
         avg_vol = df["vol"].rolling(5).mean()
