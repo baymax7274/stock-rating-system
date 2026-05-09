@@ -1,0 +1,50 @@
+import os
+
+# 必须在导入akshare/requests之前清除代理
+for k in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"):
+    os.environ.pop(k, None)
+os.environ["no_proxy"] = "*"
+os.environ["NO_PROXY"] = "*"
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from app.scoring.engine import ScoringEngine
+from app.models.schemas import ApiResponse
+
+app = FastAPI(
+    title="股票技术面评分系统",
+    description="基于Akshare数据的股票技术面自动评分API",
+    version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+engine = ScoringEngine()
+
+
+@app.get("/api/v1/rating/{stock_code}", response_model=ApiResponse)
+async def get_rating(stock_code: str):
+    """获取股票技术面评分"""
+    try:
+        result = engine.rate(stock_code)
+        return ApiResponse(code=0, message="success", data=result)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"评分服务异常: {str(e)}")
+
+
+@app.get("/api/v1/health")
+async def health():
+    return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
