@@ -14,20 +14,20 @@
 - Modify: `requirements.txt`
 - Modify: `app/main.py`
 
-- [ ] **Step 1: 添加 jinja2 依赖**
+- [x] **Step 1: 添加 jinja2 依赖**
 
 `requirements.txt` 末尾追加一行：
 ```
 jinja2==3.1.4
 ```
 
-- [ ] **Step 2: 安装依赖**
+- [x] **Step 2: 安装依赖**
 
 ```bash
 pip install jinja2==3.1.4
 ```
 
-- [ ] **Step 3: 配置模板目录**
+- [x] **Step 3: 配置模板目录**
 
 在 `app/main.py` 中，FastAPI app 创建后添加 Jinja2Templates：
 
@@ -61,7 +61,7 @@ templates = Jinja2Templates(directory="app/templates")
 **Files:**
 - Modify: `app/main.py`
 
-- [ ] **Step 1: 添加股票列表缓存和搜索接口**
+- [x] **Step 1: 添加股票列表缓存和搜索接口**
 
 在 `main.py` 中添加：
 

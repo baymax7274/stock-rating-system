@@ -1,5 +1,23 @@
 # 更新日志
 
+## v2.0.0 (2026-05-10)
+
+### 新增
+- **DeepSeek AI 自定义评分策略** — 用户可用自然语言定义评分标准，DeepSeek 读取个股技术数据后按自定义策略打分
+- **策略管理面板** — Web 界面支持创建、编辑、删除评分策略，查询股票时可切换不同策略进行评分
+- **策略 CRUD API** (`GET/POST/PUT/DELETE /api/v1/strategies`)
+- **AI 分析报告** — AI 评分结果额外附带 100-200 字综合分析
+- 评分 API 新增 `strategy_id` 可选参数，传入则走 DeepSeek 评分通道
+- 新增 `app/ai/` 模块：`deepseek_client.py`（DeepSeek API 客户端）、`strategy_store.py`（策略 JSON 持久化）
+
+### 变更
+- `RatingResult` 新增 `ai_analysis`、`strategy_name` 可选字段
+- `ScoringEngine.rate()` 重构为双通道（规则引擎 / AI 评分），原有调用无影响
+- 前端重构为 v2.0 界面，新增策略选择器和策略管理弹窗
+- 配置 DeepSeek API Key，验证 AI 评分链路正常：自定义策略评分成功，返回综合分析和策略名称
+
+---
+
 ## v1.1.0 (2026-05-09)
 
 ### 新增
